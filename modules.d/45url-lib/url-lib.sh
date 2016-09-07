@@ -155,3 +155,24 @@ nfs_fetch_url() {
     if [ -z "$2" ]; then echo "$outloc" ; fi
 }
 command -v nfs_to_var >/dev/null && add_url_handler nfs_fetch_url nfs nfs4
+
+aria2_opts="--follow-torrent=mem --file-allocation=prealloc --enable-mmap=true --seed-ratio=0 --seed-time=0"
+
+aria_fetch_url() {
+    local url="$1" outloc="$2"
+    url=${url#*//}
+
+    if [ -z "$outloc" ]; then
+        outloc="$(mkuniqdir /tmp torrent_fetch_url)"
+    fi
+    imagename=rootfs.img
+
+    aria2c $aria2_opts -d $outloc -O 1=$imagename http://$url >&2
+    if ! [ -f "$outloc/$imagename" ]; then
+        warn "Torrent download of '$url' failed!"
+        return 253
+    fi
+    if [ -z "$2" ]; then echo "$outloc/$imagename" ; fi
+}
+
+command -v aria2c >/dev/null && add_url_handler aria_fetch_url torrent
