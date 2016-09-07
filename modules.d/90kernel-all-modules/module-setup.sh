@@ -10,5 +10,5 @@ installkernel() {
 }
 
 install() {
-	:
+	inst_hook pre-pivot 01 "$moddir/copymodules.sh"
 }
