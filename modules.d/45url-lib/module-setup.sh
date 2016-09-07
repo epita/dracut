@@ -18,6 +18,7 @@ install() {
     local _dir _crt _found _lib _nssckbi _p11roots _p11root _p11item
     inst_simple "$moddir/url-lib.sh" "/lib/url-lib.sh"
     inst_multiple -o ctorrent
+    inst_multiple aria2c
     inst_multiple curl
     # also install libs for curl https
     inst_libdir_file "libnsspem.so*"
