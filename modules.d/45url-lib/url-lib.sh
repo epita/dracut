@@ -156,17 +156,21 @@ nfs_fetch_url() {
 }
 command -v nfs_to_var >/dev/null && add_url_handler nfs_fetch_url nfs nfs4
 
-aria2_opts="--follow-torrent=mem --file-allocation=prealloc --enable-mmap=true --seed-ratio=0 --seed-time=0"
+aria2_base=" --file-allocation=prealloc --enable-mmap=true --seed-ratio=0 --summary-interval=30"
+aria2_nodht="--enable-dht=false --enable-dht6=false"
+aria2_noseed="--seed-time=0"
+aria2_opts="$aria2_base $aria2_nodht $aria2_noseed"
 
 aria_fetch_url() {
     local url="$1" outloc="$2"
     url=${url#*//}
 
     if [ -z "$outloc" ]; then
-        outloc="$(mkuniqdir /tmp torrent_fetch_url)"
+        outloc="$(mkuniqdir /torrent rootfs)"
     fi
     imagename=rootfs.img
 
+    mount -t tmpfs none /torrent
     aria2c $aria2_opts -d $outloc -O 1=$imagename http://$url >&2
     if ! [ -f "$outloc/$imagename" ]; then
         warn "Torrent download of '$url' failed!"
