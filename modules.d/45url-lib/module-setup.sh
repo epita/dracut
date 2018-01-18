@@ -25,6 +25,7 @@ install() {
     inst_libdir_file "libnsssysinit.so*"
     inst_libdir_file "libsoftokn3.so*"
     inst_libdir_file "libsqlite3.so*"
+    inst_hook pre-pivot 01 "$moddir/mmount.sh"
 
     for _dir in $libdirs; do
 	[[ -d $_dir ]] || continue
