@@ -156,7 +156,7 @@ nfs_fetch_url() {
 }
 command -v nfs_to_var >/dev/null && add_url_handler nfs_fetch_url nfs nfs4
 
-aria2_base=" --file-allocation=prealloc --enable-mmap=true --seed-ratio=0 --summary-interval=30"
+aria2_base=" -V --file-allocation=prealloc --enable-mmap=true --seed-ratio=0 --summary-interval=10"
 aria2_nodht="--enable-dht=false --enable-dht6=false"
 aria2_noseed="--seed-time=0"
 aria2_opts="$aria2_base $aria2_nodht $aria2_noseed"
@@ -164,25 +164,49 @@ aria2_opts="$aria2_base $aria2_nodht $aria2_noseed"
 aria_fetch_url() {
     local url="$1" outloc="$2"
     url=${url#*//}
+    torrentname=${url##*/}
+    filename=${torrentname%.torrent}.squashfs
 
     if [ -z "$outloc" ]; then
-        outloc="$(mkuniqdir /torrent rootfs)"
+        outloc="/srv/torrent"
     fi
-    imagename=rootfs.img
 
+    mkdir -p "$outloc"
     if [[ -e /dev/disk/by-partlabel/bootcache ]]; then
-        mount -t ext4 /dev/disk/by-partlabel/bootcache /torrent 
+        if mount -t ext4 /dev/disk/by-partlabel/bootcache "$outloc"; then
+	    rm -f "$outloc/$torrentname"
+        else
+            warn "Failed to mount bootcache, falling back to tmpfs"
+            mount -t tmpfs none "$outloc"
+        fi
     else
-        mount -t tmpfs none /torrent
+        warn "No bootcache partition found"
+        mount -t tmpfs none "$outloc"
     fi
 
-    rngd
-    aria2c $aria2_opts -d $outloc -O 1=$imagename http://$url >&2
-    if ! [ -f "$outloc/$imagename" ]; then
+    rngd >&2
+
+    mkfifo /tmp/aria2_output
+    aria2c $aria2_opts -d $outloc -O 1=$filename https://$url > /tmp/aria2_output &
+    cat /tmp/aria2_output | while read l; do
+        echo "$l" >&2
+    done
+    rm /tmp/aria2_output
+
+    if ! [ -f "$outloc/$filename" ]; then
         warn "Torrent download of '$url' failed!"
         return 253
     fi
-    if [ -z "$2" ]; then echo "$outloc/$imagename" ; fi
+
+    for torrent in $(ls $outloc/*.torrent); do
+	torrentname=${torrent##*/}
+	echo $torrent
+	echo " index-out=1=${torrentname%.torrent}.squashfs"
+	echo " dir=$outloc"
+	echo " check-integrity=true"
+    done > "$outloc/aria2_seedlist.txt"
+
+    if [ -z "$2" ]; then echo "$outloc/$filename" ; fi
 }
 
 command -v aria2c >/dev/null && add_url_handler aria_fetch_url torrent
