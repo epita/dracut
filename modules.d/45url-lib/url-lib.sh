@@ -170,7 +170,13 @@ aria_fetch_url() {
     fi
     imagename=rootfs.img
 
-    mount -t tmpfs none /torrent
+    if [[ -e /dev/disk/by-partlabel/bootcache ]]; then
+        mount -t ext4 /dev/disk/by-partlabel/bootcache /torrent 
+    else
+        mount -t tmpfs none /torrent
+    fi
+
+    rngd
     aria2c $aria2_opts -d $outloc -O 1=$imagename http://$url >&2
     if ! [ -f "$outloc/$imagename" ]; then
         warn "Torrent download of '$url' failed!"
