@@ -199,6 +199,8 @@ aria_fetch_url() {
         return 253
     fi
 
+    kill -9 $(pidof rngd)
+
     for torrent in $(ls $outloc/*.torrent); do
 	torrentname=${torrent##*/}
 	echo $torrent
