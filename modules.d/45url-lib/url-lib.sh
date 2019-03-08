@@ -172,16 +172,22 @@ aria_fetch_url() {
     fi
 
     mkdir -p "$outloc"
-    if [[ -e /dev/disk/by-partlabel/bootcache ]]; then
-        if mount -t ext4 /dev/disk/by-partlabel/bootcache "$outloc"; then
-	    rm -f "$outloc/$torrentname"
+
+    if getargbool 0 nobootcache; then
+        warn "bootcache disabled"
+        mount -t tmpfs none "$outloc"
+    else
+        if [[ -e /dev/disk/by-partlabel/bootcache ]]; then
+            if mount -t ext4 /dev/disk/by-partlabel/bootcache "$outloc"; then
+	        rm -f "$outloc/$torrentname"
+            else
+                warn "Failed to mount bootcache, falling back to tmpfs"
+                mount -t tmpfs none "$outloc"
+            fi
         else
-            warn "Failed to mount bootcache, falling back to tmpfs"
+            warn "No bootcache partition found"
             mount -t tmpfs none "$outloc"
         fi
-    else
-        warn "No bootcache partition found"
-        mount -t tmpfs none "$outloc"
     fi
 
     rngd >&2
