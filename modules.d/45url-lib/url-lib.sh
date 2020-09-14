@@ -166,6 +166,7 @@ aria_fetch_url() {
     url=${url#*//}
     torrentname=${url##*/}
     filename=${torrentname%.torrent}.squashfs
+    torrentfile="https://$url"
 
     if [ -z "$outloc" ]; then
         outloc="/srv/torrent"
@@ -192,7 +193,11 @@ aria_fetch_url() {
 
     rngd >&2
 
-    aria2c $aria2_opts -d $outloc -O 1=$filename https://$url > /dev/console
+    if getargbool 0 skipdownload && [ -r "$outloc/$torrentname" ]; then
+        torrentfile="$outloc/$torrentname"
+    fi
+
+    aria2c $aria2_opts -d $outloc -O 1=$filename "$torrentfile" > /dev/console
 
     if ! [ -f "$outloc/$filename" ]; then
         warn "Torrent download of '$url' failed!"
