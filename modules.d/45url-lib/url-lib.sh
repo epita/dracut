@@ -172,6 +172,9 @@ aria_fetch_url() {
         outloc="/srv/torrent"
     fi
 
+    # Launch rngd to fill entropy pools for aria2c
+    rngd >&2
+
     mkdir -p "$outloc"
 
     if getargbool 0 nobootcache; then
@@ -180,7 +183,9 @@ aria_fetch_url() {
     else
         if [[ -e /dev/disk/by-partlabel/bootcache ]]; then
             if mount -t ext4 /dev/disk/by-partlabel/bootcache "$outloc"; then
-	        rm -f "$outloc/$torrentname"
+                if ! getargbool 0 skipdownload; then
+                    rm -f "$outloc/$torrentname"
+                fi
             else
                 warn "Failed to mount bootcache, falling back to tmpfs"
                 mount -t tmpfs none "$outloc"
@@ -190,8 +195,6 @@ aria_fetch_url() {
             mount -t tmpfs none "$outloc"
         fi
     fi
-
-    rngd >&2
 
     if getargbool 0 skipdownload && [ -r "$outloc/$torrentname" ]; then
         torrentfile="$outloc/$torrentname"
